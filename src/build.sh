@@ -10,12 +10,12 @@ for file in *.cpp; do
 done
 
 # Link all object files into an executable named my_program
-g++ *.o -o my_program -L"${SFML_DIR}/lib" -lsfml-graphics -lsfml-window -lsfml-system
+g++ *.o -o mmo_client -L"${SFML_DIR}/lib" -lsfml-graphics -lsfml-window -lsfml-system
 
 # Run the executable
 if [ $? -eq 0 ]; then
     echo "Build successful. Running my_program..."
-    ./my_program
+    ./mmo_client
 else
     echo "Build failed."
 fi
