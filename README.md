@@ -1,7 +1,7 @@
 
 # MMO Game Client
 
-MMO game client over TCP. Written in C++ using SFML for 2d graphics rendering. Communication protocol is synced with a Go server which runs the game.
+MMO game client over TCP. Written in C++ using SFML for 2d graphics rendering. Communication protocol is synced with a Go server which runs the game, which can be found [here.](https://github.com/kanetempleton/mmo_server)
 
 
 ## Dependencies
