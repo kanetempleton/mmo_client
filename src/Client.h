@@ -6,14 +6,14 @@
 #include <cstring>
 #include <unistd.h>
 #include <arpa/inet.h>
-
+#include "GUI.h"
 
 
 class Client {
 public:
-    Client();
+    Client(GUI* g);
     ~Client();
-
+    GUI* gui;
     bool connectToServer(const std::string& serverIP, int serverPort);
     bool sendData(const std::string& data);
      std::string receiveData();

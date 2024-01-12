@@ -13,6 +13,13 @@ GUI::GUI() {
 
 }
 
+GUI::~GUI() {
+if (clientThread.joinable()) {
+        clientThread.join();
+        // or clientThread.detach(); if you want to detach the thread
+    }
+}
+
 void GUI::initWindow() {
     window.create(sf::VideoMode(800, 600), "SFML GUI Example");
 }
@@ -42,7 +49,8 @@ void GUI::initFonts() {
 }
 
 void GUI::initFirstState() {
-    currentState = State::ConnectButton;
+    // State::ConnectButton;
+    setState(State::ConnectButton);
 
     // Set up the sprite for the "Connect" button
     connectButtonSprite.setTexture(texture_greenpink);
@@ -154,11 +162,22 @@ void GUI::run() {
             handleEventsLoginScreen();
             updateLoginScreen();
             renderLoginScreen();
+         //   printf("hey\n");
         } else if (currentState == State::Loading) {
+          //  printf("current state is loading\n");
+            handleEventsGeneral();
             renderLoading();
+        } else {
+            printf("Invalid state rendering\n");
         }
     }
 }
+
+void GUI::setState(State s) {
+    currentState = s;
+    printf("Changed GUI state: %d\n",s);
+}
+
 
 
 
@@ -173,7 +192,8 @@ void GUI::handleEventsConnectButton() {
 
                 if (connectButtonSprite.getGlobalBounds().contains(mousePos)) {
                     // Connect button clicked, switch to LoginScreen state
-                    currentState = State::LoginScreen;
+                   // currentState = State::LoginScreen;
+                    setState(State::LoginScreen);
 
                     // Clear entered username and password
                     enteredUsername.clear();
@@ -190,32 +210,54 @@ void GUI::handleEventsConnectButton() {
         }
     }
 }
+void GUI::handleLoginButton(const std::string& user, const std::string& pass) {
+    std::printf("Username: %s\n", enteredUsername.c_str());
+    std::printf("Password: %s\n", enteredPassword.c_str());
+   //currentState = State::Loading;
+   // setState(State::Loading);
+    infoText = "Loading, please wait...";
+    startLoginTimer();
+    handleConnection(enteredUsername, enteredPassword);  // Move the connection logic here if needed
+}
+std::chrono::seconds timerDuration{10};  // Set the timer duration to 10 seconds
+bool isTimerActive{false};
 
+void GUI::startLoginTimer() {
+    isTimerActive = true;
+    std::thread([this]() {
+        std::this_thread::sleep_for(timerDuration);
+        endLoginTimer();
+    }).detach();
+}
 
-
-void GUI::handleEventsLoginScreen() {
+void GUI::endLoginTimer() {
+    isTimerActive = false;
+    if (serverResponse.length()<=0) {
+        infoText = "No response from login server.";
+    }
+}
+void GUI::handleEventsGeneral() {
     sf::Event event;
     while (window.pollEvent(event)) {
         if (event.type == sf::Event::Closed) {
             window.close();
         } else if (event.type == sf::Event::MouseButtonPressed) {
             if (event.mouseButton.button == sf::Mouse::Left) {
-                sf::Vector2f mousePos = sf::Vector2f(event.mouseButton.x, event.mouseButton.y);
-
-                if (cancelButton.getGlobalBounds().contains(mousePos)) {
-                    // Cancel button clicked, return to ConnectButton state
-                    currentState = State::ConnectButton;
-                } else if (logInButton.getGlobalBounds().contains(mousePos)) {
-                    // Log In button clicked, print values and return to ConnectButton state
-                    std::printf("Username: %s\n", enteredUsername.c_str());
-                    std::printf("Password: %s\n", enteredPassword.c_str());
-                    currentState = State::ConnectButton;
-
-                    // Start a new thread to handle the connection
-                    std::thread connectionThread(&GUI::handleConnection, this, enteredUsername, enteredPassword);
-                    connectionThread.detach();  // Detach the thread to let it run independently
-                    currentState = State::ConnectButton;
-                }
+                handleMouseLeftClick(event.mouseButton.x, event.mouseButton.y);
+            }
+        }
+    }
+}
+void GUI::handleEventsLoginScreen() {
+    //printf("handleeventsloginscreen\n");
+    sf::Event event;
+    while (window.pollEvent(event)) {
+        if (event.type == sf::Event::Closed) {
+            window.close();
+        } else if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                //sf::Vector2f mousePos = sf::Vector2f(event.mouseButton.x, event.mouseButton.y);
+                handleMouseLeftClick(event.mouseButton.x, event.mouseButton.y);
             }
         } else if (event.type == sf::Event::TextEntered) {
             // Handle text input for username and password fields
@@ -242,56 +284,47 @@ void GUI::handleEventsLoginScreen() {
     }
 }
 
-void GUI::handleConnection(const std::string& username, const std::string& password) {
-    isLoading = true;
-    currentState = State::Loading;
+void GUI::handleMouseLeftClick(int mousex, int mousey) {
+    sf::Vector2f mousePos = sf::Vector2f(mousex, mousey);
 
-    serverResponse = "Loading, please wait...";
-
-    // Create an instance of the Client class
-    Client client;
-
-    // Set the callback to update the loading text
-    client.setOnDataReceivedCallback([this](const std::string& receivedData) {
-        // Use a mutex to synchronize access to serverResponse
-        std::lock_guard<std::mutex> lock(responseMutex);
-        serverResponse = receivedData;
-    });
-
-    // Connect to the server on port 43595
-    if (client.connectToServer("127.0.0.1", 43595)) {
-        // Send the message "hello $username $password" to the server
-        std::string message = "hello " + username + " " + password;
-        client.sendData(message);
-
-        // Start a new thread to handle data receiving
-        std::thread receiveThread([&client, this]() {
-            // Receive data from the server
-            client.receiveData();
-        });
-
-        // Wait for the receive thread to finish
-        receiveThread.join();
-    }
-
-    {
-        // Update the GUI in the main thread
-        std::lock_guard<std::mutex> lock(responseMutex);
-        isLoading = false;
-        currentState = State::ConnectButton;
+    if (cancelButton.getGlobalBounds().contains(mousePos)) {
+        handleCancelButton();
+    } else if (logInButton.getGlobalBounds().contains(mousePos)) {
+        handleLoginButton(enteredUsername, enteredPassword);
     }
 }
 
+void GUI::backgroundThread(const std::string& ip, int port, const std::string& usr, const std::string& pass)  {
+    Client client(this);
+    client.connectToServer(ip, port);
+    client.sendData("hello "+usr+" "+pass);
+    client.receiveData();
+}
+void GUI::handleConnection(const std::string& username, const std::string& password) {
+    isLoading = true;
+    infoText = "Loading, please wait...";
+    setState(State::Loading);
+
+    std::string ip = "127.0.0.1";
+    int port = 43595; 
+
+    clientThread = std::thread(&GUI::backgroundThread, this, ip, port,username,password);
+    //clientThread.join();
+}
 
 
-
-
+void GUI::handleCancelButton() {
+    if (currentState == State::LoginScreen) {
+         setState(State::ConnectButton);
+    }
+}
 void GUI::updateConnectButton() {
-    // Add any logic for the ConnectButton state here
+    if (currentState == State::ConnectButton) {
+        
+    }
 }
 
 void GUI::updateLoginScreen() {
-    // Add any logic for the LoginScreen state here
 }
 
 void GUI::renderConnectButton() {
@@ -317,7 +350,6 @@ void GUI::renderConnectButton() {
 }
 
 void GUI::renderLoading() {
-
     window.clear();
 
     // Draw the background sprite
@@ -332,18 +364,30 @@ void GUI::renderLoading() {
     // Display the server response in the black box
     sf::Text loadingText;
     loadingText.setFont(font);
-    loadingText.setString(serverResponse);
+    std::string serverText = "";
+    if (serverResponse.length()>0) {
+        serverText = ""+serverResponse;
+    }
+    loadingText.setString(infoText+serverText);
     loadingText.setCharacterSize(24);
     loadingText.setFillColor(sf::Color::White);
-    loadingText.setPosition(300 - loadingText.getLocalBounds().width / 2.0f,
-                            300 - loadingText.getLocalBounds().height / 2.0f);
-    window.draw(loadingText);
 
+    // Calculate the center of the black box
+    float centerX = loadingBox.getPosition().x + loadingBox.getSize().x / 2.0f;
+    float centerY = loadingBox.getPosition().y + loadingBox.getSize().y / 2.0f;
+
+    // Adjust the position of the text to center it within the black box
+    loadingText.setPosition(centerX - loadingText.getLocalBounds().width / 2.0f,
+                             centerY - loadingText.getLocalBounds().height / 2.0f);
+
+    window.draw(loadingText);
     window.display();
 }
 
 
+
 void GUI::renderLoginScreen() {
+   // printf("renderloginscreen\n");
     window.clear();
 
     // Draw the background sprite
@@ -365,4 +409,5 @@ void GUI::renderLoginScreen() {
     window.draw(passwordText);
 
     window.display();
+   // printf("donerenderingloginscreen\n");
 }

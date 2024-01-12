@@ -5,7 +5,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-Client::Client() : socket_fd(-1) {
+Client::Client(GUI* g) : gui(g), socket_fd(-1) {
     FD_ZERO(&master_fds);
 }
 
@@ -115,6 +115,7 @@ std::string Client::receiveData() {
             if (bytesRead > 0) {
                 buffer[bytesRead] = '\0';
                 std::cout << "Received data: " << buffer << std::endl;
+                gui->serverResponse = buffer;
 
                 // Append the received data to the string
                 receivedData += buffer;
@@ -133,4 +134,5 @@ std::string Client::receiveData() {
 
     return receivedData;
 }
+
 

@@ -1,18 +1,27 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include <thread>
 
 class GUI {
 public:
     GUI();
+    ~GUI();
     void run();
 
+    //net
+    std::string serverResponse;
+
 private:
+
+    //state tracking
     enum class State {
         ConnectButton,
         LoginScreen,
         Loading
     };
+
+    void setState(State s);
 
 
     // initialization methods
@@ -23,9 +32,13 @@ private:
     void initFonts();
     void initTextures();
 
-    // actions
+    //io
+    void handleEventsGeneral();
     void handleEventsConnectButton();
     void handleEventsLoginScreen();
+    void handleMouseLeftClick(int mousex, int mousey);
+
+    
 
     // updates
     void updateConnectButton();
@@ -49,6 +62,10 @@ private:
 
     // buttons
     sf::Text connectButton;
+    void handleConnectButton();
+    void handleCancelButton();
+    void handleLoginButton(const std::string& user, const std::string& pass);
+
 
     // textures
     sf::Texture backgroundTexture;
@@ -81,8 +98,19 @@ private:
     bool focusUsername;
     bool isLoading;
 
+    //info
+    std::string infoText;
+
 
     // networking
-    std::string serverResponse;
+    std::thread clientThread;
+    
     std::mutex responseMutex;
+    void backgroundThread(const std::string& ip, int port,const std::string& usr, const std::string& pass);
+    void startLoginTimer();
+    void endLoginTimer();
+
+
+    
+
 };
