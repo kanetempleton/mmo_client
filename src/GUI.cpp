@@ -304,7 +304,8 @@ void GUI::backgroundThread(const std::string& ip, int port, const std::string& u
     for (int i = 0; i < 1024; i++) {
         printf("%d\t%c\t//%d\n", i, packet[i], static_cast<unsigned char>(packet[i]));
     }
-    client.sendData(packet);
+    printf("GUI.backgroundThread: packet len: %lu\n",strlen(packet));
+    client.sendBytes(packet,1024);
     delete[] packet;
     client.receiveData();
 }

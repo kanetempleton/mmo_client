@@ -18,6 +18,7 @@ public:
     KProtocol* kProtocol;
     bool connectToServer(const std::string& serverIP, int serverPort);
     bool sendData(const std::string& data);
+    bool sendBytes(char* data, int dataSize);
      std::string receiveData();
       void setOnDataReceivedCallback(const std::function<void(const std::string&)>& callback);
 

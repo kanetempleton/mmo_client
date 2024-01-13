@@ -69,7 +69,7 @@ bool Client::connectToServer(const std::string& serverIP, int serverPort) {
 
 bool Client::sendData(const std::string& data) {
     ssize_t totalSent = 0;
-
+    printf("sendData: sending: %lu\n",data.size());
     while (totalSent < data.size()) {
         ssize_t sent = send(socket_fd, data.c_str() + totalSent, data.size() - totalSent, 0);
 
@@ -85,6 +85,25 @@ bool Client::sendData(const std::string& data) {
 
     return true;
 }
+bool Client::sendBytes(char* data, int dataSize) {
+    ssize_t totalSent = 0;
+
+    while (totalSent < dataSize) {
+        ssize_t sent = send(socket_fd, data + totalSent, dataSize - totalSent, 0);
+
+        if (sent == -1) {
+            perror("send");
+            return false;
+        }
+
+        totalSent += sent;
+    }
+
+    printf("Sent %zu bytes.\n", dataSize);
+
+    return true;
+}
+
 
 
 void Client::setOnDataReceivedCallback(const std::function<void(const std::string&)>& callback) {
