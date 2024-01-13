@@ -1,11 +1,12 @@
 #include "Client.h"
+#include "KProtocol.h"
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
 
-Client::Client(GUI* g) : gui(g), socket_fd(-1) {
+Client::Client(GUI* g, KProtocol* k) : gui(g), kProtocol(k), socket_fd(-1) {
     FD_ZERO(&master_fds);
 }
 
@@ -116,6 +117,7 @@ std::string Client::receiveData() {
                 buffer[bytesRead] = '\0';
                 std::cout << "Received data: " << buffer << std::endl;
                 gui->serverResponse = buffer;
+                kProtocol->processPacket(buffer);
 
                 // Append the received data to the string
                 receivedData += buffer;

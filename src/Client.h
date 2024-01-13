@@ -7,17 +7,20 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "GUI.h"
+#include "KProtocol.h"
 
 
 class Client {
 public:
-    Client(GUI* g);
+    Client(GUI* g,KProtocol* k);
     ~Client();
     GUI* gui;
+    KProtocol* kProtocol;
     bool connectToServer(const std::string& serverIP, int serverPort);
     bool sendData(const std::string& data);
      std::string receiveData();
       void setOnDataReceivedCallback(const std::function<void(const std::string&)>& callback);
+
 
 private:
     int socket_fd;

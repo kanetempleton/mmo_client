@@ -1,5 +1,6 @@
 #include "GUI.h"
 #include "Client.h"  // Add this line
+#include "KProtocol.h"
 #include <cstdio>
 #include <thread>
 #include <mutex>
@@ -295,9 +296,16 @@ void GUI::handleMouseLeftClick(int mousex, int mousey) {
 }
 
 void GUI::backgroundThread(const std::string& ip, int port, const std::string& usr, const std::string& pass)  {
-    Client client(this);
+    KProtocol* kProtocol;
+    Client client(this,kProtocol);
     client.connectToServer(ip, port);
-    client.sendData("hello "+usr+" "+pass);
+   // client.sendData("hello "+usr+" "+pass);
+    char* packet = client.kProtocol->sendMessagePacket("hello "+usr+" "+pass);
+    for (int i = 0; i < 1024; i++) {
+        printf("%d\t%c\t//%d\n", i, packet[i], static_cast<unsigned char>(packet[i]));
+    }
+    client.sendData(packet);
+    delete[] packet;
     client.receiveData();
 }
 void GUI::handleConnection(const std::string& username, const std::string& password) {
